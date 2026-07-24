@@ -23,6 +23,7 @@ python3 -m http.server 8000
 
 | 폴더 | 시뮬레이션 | 설명 |
 | --- | --- | --- |
+| [`diurnal-motion/`](diurnal-motion/) | 별들의 일주운동 | 지구 자전에 의한 별의 일주운동, 위도·적위에 따른 주극성/출몰성/전몰성 판별 |
 | [`retrograde-motion/`](retrograde-motion/) | 행성의 순행과 역행 | 외행성(화성)·내행성(금성)의 겉보기 운동을 여러 좌표계 뷰로 비교 |
 | [`coriolis-effect/`](coriolis-effect/) | 코리올리 효과 | 회전 좌표계와 관성 좌표계 시점을 나란히 비교 |
 | [`moon-shadow/`](moon-shadow/) | 일식 그림자 (태양·달·지구) | 3D 배치 + 2D 지도로 개기/부분일식 경로 표시 |
