@@ -352,7 +352,8 @@ function drawSkyView() {
 // =====================================================================
 const sceneCanvas = document.getElementById('sceneView');
 const cctx = sceneCanvas.getContext('2d');
-let camScene = { az: 180, el: 18 };   // 카메라 방위(도, 남쪽에서 북쪽 바라봄)·고도
+// 방위 250°: 북=왼쪽, 남=오른쪽, 동=뒤쪽 약간 오른쪽, 서=앞쪽 약간 왼쪽
+let camScene = { az: 250, el: 18 };
 
 // 지평좌표(고도·방위) → 국소 단위벡터 [동, 북, 위]
 function localVec(alt, az) {
