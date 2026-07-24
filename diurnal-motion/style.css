@@ -78,6 +78,12 @@ h1 { font-size: clamp(26px, 4.5vw, 40px); margin: 0 0 14px; font-weight: 800; le
 }
 .view-card canvas:active { cursor: grabbing; }
 #skyView { cursor: default; }
+
+.view-card.full { grid-column: 1 / -1; }
+#sceneView {
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(180deg, #060b1e 0%, #0a1024 55%, #0c1330 100%);
+}
 .view-card figcaption { padding: 12px 6px 4px; font-size: 13.5px; line-height: 1.55; }
 .view-card figcaption b { display: block; margin-bottom: 3px; font-size: 14.5px; }
 .view-card figcaption span { color: var(--muted); }
