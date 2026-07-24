@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>별들의 일주운동 · 천체 시뮬레이션</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E✨%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="stars-bg"></div>
+
+  <header class="page-head">
+    <a class="home-link" href="../index.html">← 시뮬레이션 목록</a>
+    <h1>✨ 별들의 일주운동</h1>
+    <p class="lead">
+      지구 자전 때문에 하룻밤 사이 별들이 천구의 극을 중심으로 원을 그리며 도는
+      <b>일주운동(diurnal motion)</b>을 살펴봅니다. 관측자의 위도·경도와 별의
+      적경·적위를 바꿔 가며 각 별이 <b>주극성·출몰성·전몰성</b> 중 무엇이 되는지
+      확인해 보세요.
+    </p>
+    <p class="disclaimer">
+      ⓘ 이 시뮬레이션은 <b>지구의 자전</b>에 의한 <b>하루(약 24시간)</b> 동안의
+      변화만 반복해서 보여줍니다. 지구의 공전에 따른 계절 변화나 별의 실제
+      고유운동·세차운동 등은 포함하지 않습니다.
+    </p>
+  </header>
+
+  <main>
+    <section class="views">
+      <figure class="view-card">
+        <canvas id="spaceView"></canvas>
+        <figcaption>
+          <b>천구와 지구 — 우주에서 본 모습</b>
+          <span>별은 천구에 고정되어 있고, 지구가 자전축을 중심으로 돕니다. 드래그하면 시점을 돌릴 수 있어요.</span>
+        </figcaption>
+      </figure>
+      <figure class="view-card">
+        <canvas id="skyView"></canvas>
+        <figcaption>
+          <b>관측자의 하늘 — 반구(지평선 위)</b>
+          <span>지평선 위에 보이는 하늘. 중심이 천정, 가장자리가 지평선입니다. 별의 하루 경로가 함께 표시됩니다.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <section class="controls">
+      <!-- 관측자 -->
+      <div class="panel">
+        <h2>관측자 위치</h2>
+        <div class="field">
+          <label>위도 (Latitude)
+            <output id="latOut">+37.5°</output>
+          </label>
+          <input type="range" id="lat" min="-90" max="90" step="0.5" value="37.5" />
+          <div class="ticks"><span>남극 −90°</span><span>적도 0°</span><span>북극 +90°</span></div>
+        </div>
+        <div class="field">
+          <label>경도 (Longitude)
+            <output id="lonOut">+127°</output>
+          </label>
+          <input type="range" id="lon" min="-180" max="180" step="1" value="127" />
+          <div class="ticks"><span>−180°</span><span>0°</span><span>+180°</span></div>
+        </div>
+        <p class="hint" id="poleHint"></p>
+      </div>
+
+      <!-- 시간 -->
+      <div class="panel">
+        <h2>시간 (하루)</h2>
+        <div class="playbar">
+          <button id="play" class="btn primary">▶ 재생</button>
+          <button id="pause" class="btn">⏸ 일시정지</button>
+          <button id="stop" class="btn">⏹ 정지</button>
+        </div>
+        <div class="field">
+          <label>경과 시각
+            <output id="timeOut">00:00</output>
+          </label>
+          <input type="range" id="time" min="0" max="24" step="0.01" value="0" />
+          <div class="ticks"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
+        </div>
+        <div class="field">
+          <label>재생 속도
+            <output id="speedOut">1.0×</output>
+          </label>
+          <input type="range" id="speed" min="0.25" max="8" step="0.25" value="1" />
+        </div>
+      </div>
+
+      <!-- 별 편집 -->
+      <div class="panel wide">
+        <h2>별 편집 &amp; 분류</h2>
+        <p class="hint">각 별의 적경(RA)과 적위(Dec)를 바꾸면, 현재 위도에서의 분류가 자동으로 갱신됩니다.</p>
+        <div id="starEditors" class="star-editors"></div>
+        <div class="legend">
+          <span class="lg circumpolar">● 주극성 — 지평선 아래로 지지 않음</span>
+          <span class="lg risesets">● 출몰성 — 떴다가 짐</span>
+          <span class="lg neverrise">● 전몰성 — 지평선 위로 뜨지 않음</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-foot">
+    별들의 일주운동 · 천체 시뮬레이션 모음의 일부 · 빌드 없이 브라우저에서 바로 동작
+  </footer>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
