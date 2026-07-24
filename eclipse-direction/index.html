@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>일식과 월식 — 학생들의 질문</title>
+  <meta name="description" content="일식과 월식에서 달그림자/그림자가 움직이는 방향과 속도에 대한 학생들의 질문을 시뮬레이션으로 풀어봅니다." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header home-header">
+    <h1>일식과 월식 — 학생들의 질문 🌗</h1>
+    <p class="tagline">
+      달은 일식과 월식에서 모두 <strong>동쪽(왼쪽)으로 공전</strong>합니다.
+      그런데 일식에서는 태양이 <strong>오른쪽(서)부터</strong>, 월식에서는 달이 <strong>왼쪽(동)부터</strong> 가려져
+      <strong>반대로</strong> 보입니다. 왜 그럴까요? 두 시뮬레이션으로 직접 확인해 보세요.
+    </p>
+  </header>
+
+  <main class="q-grid">
+    <section class="q-card q-solar">
+      <div class="q-tag">🌞 일식 (Solar eclipse)</div>
+      <h2 class="q-title">달그림자는 왜 빠르고, 태양은 어느 쪽부터 가려질까?</h2>
+      <p class="q-text">
+        “태양은 지구 자전 때문에 1시간에 <strong>15°</strong>, 달은 공전이 빠져 <strong>14.5°</strong>로
+        조금 더 느리게 서쪽으로 간다. 달이 더 느리니까 태양을 <u>왼쪽부터</u> 가리는 것 아닐까?”
+      </p>
+      <p class="q-note">→ 각속도와 선속도를 나눠 보면, 태양은 <strong>오른쪽(서)부터</strong> 가려지고
+        달그림자는 지표를 약 2,000 km/h로 가로지릅니다.</p>
+      <a class="cta cta-solar" href="solar.html">일식 시뮬레이션 열기 →</a>
+    </section>
+
+    <section class="q-card q-lunar">
+      <div class="q-tag">🌑 월식 (Lunar eclipse)</div>
+      <h2 class="q-title">일식은 그림자가 동쪽으로 빠른데, 월식은 왜 반대 방향일까?</h2>
+      <p class="q-text">
+        “일식 때는 달그림자가 지구(지표)보다 빠르게 <strong>동쪽으로</strong> 지나간다고 했는데,
+        월식에서는 그림자가 <u>반대 방향</u>으로 움직이는 것처럼 보인다. 왜 그럴까?”
+      </p>
+      <p class="q-note">→ 같은 동쪽 공전이지만, 일식은 달이 <strong>가리는 쪽</strong>,
+        월식은 달이 <strong>가려지는 쪽</strong>이라 달은 <strong>왼쪽(동)부터</strong> 어두워집니다.</p>
+      <a class="cta cta-lunar" href="lunar.html">월식 시뮬레이션 열기 →</a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      각 시뮬레이션은 북반구·남쪽 하늘 기준(동 = 왼쪽, 서 = 오른쪽)입니다.
+      거리·크기는 화면에 맞게 과장했지만 운동 방향과 비율은 실제 물리를 따릅니다.
+    </p>
+  </footer>
+</body>
+</html>

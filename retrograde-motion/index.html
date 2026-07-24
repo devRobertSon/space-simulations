@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>행성의 순행과 역행 시뮬레이션</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a20 0%, #1a1a3a 100%);
+            min-height: 100vh;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 50px;
+            font-size: 16px;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .selection-container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .planet-card {
+            background: rgba(20, 20, 50, 0.8);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid rgba(100, 100, 200, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            width: 320px;
+            text-align: center;
+        }
+
+        .planet-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(150, 150, 255, 0.6);
+        }
+
+        .planet-card.outer:hover {
+            border-color: #ff6b4a;
+            box-shadow: 0 20px 40px rgba(255, 107, 74, 0.3);
+        }
+
+        .planet-card.inner:hover {
+            border-color: #ffd93d;
+            box-shadow: 0 20px 40px rgba(255, 217, 61, 0.3);
+        }
+
+        .planet-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .planet-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .outer .planet-title {
+            color: #ff6b4a;
+        }
+
+        .inner .planet-title {
+            color: #ffd93d;
+        }
+
+        .planet-subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .planet-description {
+            font-size: 14px;
+            color: #ccc;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .planet-example {
+            background: rgba(50, 50, 80, 0.5);
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        .diagram {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .sun {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #ffdd00;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px #ffdd00;
+        }
+
+        .orbit {
+            position: absolute;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .earth-orbit {
+            width: 100px;
+            height: 100px;
+        }
+
+        .outer .outer-orbit {
+            width: 160px;
+            height: 160px;
+        }
+
+        .inner .inner-orbit {
+            width: 60px;
+            height: 60px;
+        }
+
+        .earth {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #4a9eff;
+            border-radius: 50%;
+            top: 50%;
+            right: 0;
+            transform: translate(50%, -50%);
+        }
+
+        .outer-planet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #ff6b4a;
+            border-radius: 50%;
+            top: 50%;
+            right: -30px;
+            transform: translate(50%, -50%);
+        }
+
+        .inner-planet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #ffd93d;
+            border-radius: 50%;
+            top: 50%;
+            right: 20px;
+            transform: translate(50%, -50%);
+        }
+
+        .arrow-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 25px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .outer:hover .arrow-btn {
+            background: linear-gradient(135deg, #ff6b4a, #ff8a70);
+        }
+
+        .inner:hover .arrow-btn {
+            background: linear-gradient(135deg, #ffd93d, #ffec8b);
+            color: #333;
+        }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        @media (max-width: 700px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .selection-container {
+                gap: 20px;
+            }
+
+            .planet-card {
+                width: 100%;
+                max-width: 320px;
+                padding: 20px;
+            }
+
+            .planet-icon {
+                font-size: 60px;
+            }
+
+            .diagram {
+                width: 150px;
+                height: 150px;
+            }
+
+            .earth-orbit {
+                width: 80px;
+                height: 80px;
+            }
+
+            .outer .outer-orbit {
+                width: 120px;
+                height: 120px;
+            }
+
+            .inner .inner-orbit {
+                width: 50px;
+                height: 50px;
+            }
+
+            .outer-planet {
+                right: -20px;
+            }
+
+            .inner-planet {
+                right: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>행성의 순행과 역행 시뮬레이션</h1>
+    <p class="subtitle">
+        지구에서 관측할 때 행성이 별자리 사이를 이동하는 겉보기 운동을 시뮬레이션합니다.<br>
+        외행성과 내행성 중 하나를 선택하세요.
+    </p>
+
+    <div class="selection-container">
+        <a href="outer.html" class="planet-card outer">
+            <div class="planet-icon">🔴</div>
+            <h2 class="planet-title">외행성의 순행과 역행</h2>
+            <p class="planet-subtitle">Outer Planet Retrograde Motion</p>
+
+            <div class="diagram">
+                <div class="sun"></div>
+                <div class="orbit earth-orbit">
+                    <div class="earth"></div>
+                </div>
+                <div class="orbit outer-orbit">
+                    <div class="outer-planet"></div>
+                </div>
+            </div>
+
+            <p class="planet-description">
+                지구보다 바깥 궤도를 도는 행성<br>
+                <strong>충(Opposition)</strong> 근처에서 역행 발생<br>
+                지구가 외행성을 추월할 때 뒤로 가는 것처럼 보임
+            </p>
+            <div class="planet-example">
+                예: 화성, 목성, 토성 등
+            </div>
+            <div class="arrow-btn">시뮬레이션 시작 →</div>
+        </a>
+
+        <a href="inner.html" class="planet-card inner">
+            <div class="planet-icon">🌟</div>
+            <h2 class="planet-title">내행성의 순행과 역행</h2>
+            <p class="planet-subtitle">Inner Planet Retrograde Motion</p>
+
+            <div class="diagram">
+                <div class="sun"></div>
+                <div class="orbit inner-orbit">
+                    <div class="inner-planet"></div>
+                </div>
+                <div class="orbit earth-orbit">
+                    <div class="earth"></div>
+                </div>
+            </div>
+
+            <p class="planet-description">
+                지구보다 안쪽 궤도를 도는 행성<br>
+                <strong>내합(Inferior Conjunction)</strong> 근처에서 역행 발생<br>
+                내행성이 지구를 추월할 때 뒤로 가는 것처럼 보임
+            </p>
+            <div class="planet-example">
+                예: 수성, 금성
+            </div>
+            <div class="arrow-btn">시뮬레이션 시작 →</div>
+        </a>
+    </div>
+
+    <div class="footer">
+        <p>역행(Retrograde)은 행성이 실제로 뒤로 움직이는 것이 아니라,</p>
+        <p>지구와 행성의 상대적인 공전 속도 차이로 인한 <strong>겉보기 현상</strong>입니다.</p>
+    </div>
+</body>
+</html>

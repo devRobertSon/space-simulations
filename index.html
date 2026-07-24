@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>천체 시뮬레이션 모음 · Space Simulations</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌌%3C/text%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg: #05060f;
+      --bg-2: #0b1026;
+      --card: rgba(255, 255, 255, 0.04);
+      --card-border: rgba(255, 255, 255, 0.10);
+      --card-hover-border: rgba(130, 170, 255, 0.55);
+      --text: #eef1fb;
+      --muted: #a7afce;
+      --accent: #7aa2ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+                   "Noto Sans KR", "Malgun Gothic", Roboto, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 15% -10%, #172049 0%, transparent 55%),
+        radial-gradient(1000px 700px at 100% 0%, #241a45 0%, transparent 50%),
+        linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 60%);
+      background-attachment: fixed;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Starfield */
+    .stars, .stars::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 20% 30%, #ffffff 50%, transparent),
+        radial-gradient(1px 1px at 70% 60%, #cfe0ff 50%, transparent),
+        radial-gradient(1px 1px at 40% 80%, #ffffff 50%, transparent),
+        radial-gradient(1.5px 1.5px at 85% 20%, #ffffff 50%, transparent),
+        radial-gradient(1px 1px at 55% 15%, #d8e6ff 50%, transparent),
+        radial-gradient(1px 1px at 10% 70%, #ffffff 50%, transparent),
+        radial-gradient(1.5px 1.5px at 90% 85%, #ffffff 50%, transparent),
+        radial-gradient(1px 1px at 33% 50%, #c9dbff 50%, transparent);
+      background-repeat: repeat;
+      background-size: 100% 100%;
+      opacity: 0.55;
+      z-index: 0;
+    }
+    .stars::after { opacity: 0.25; transform: translateY(120px) scale(1.3); }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 72px 24px 96px;
+    }
+
+    header { text-align: center; margin-bottom: 56px; }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 13px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(122, 162, 255, 0.10);
+      border: 1px solid rgba(122, 162, 255, 0.25);
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      font-size: clamp(30px, 5vw, 46px);
+      line-height: 1.15;
+      margin: 0 0 16px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: clamp(15px, 2.2vw, 18px);
+      max-width: 640px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+      color: inherit;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 26px 24px 24px;
+      overflow: hidden;
+      backdrop-filter: blur(6px);
+      transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background: radial-gradient(400px 200px at var(--mx, 50%) 0%, rgba(122, 162, 255, 0.18), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.22s ease;
+      pointer-events: none;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      border-color: var(--card-hover-border);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 18px 40px -18px rgba(60, 90, 200, 0.55);
+    }
+    .card:hover::before { opacity: 1; }
+    .card:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .icon {
+      font-size: 40px;
+      line-height: 1;
+      margin-bottom: 18px;
+    }
+
+    .card h2 {
+      font-size: 20px;
+      margin: 0 0 10px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .card p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.65;
+      flex: 1;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 18px;
+    }
+    .tag {
+      font-size: 12px;
+      color: #cdd7ff;
+      background: rgba(122, 162, 255, 0.10);
+      border: 1px solid rgba(122, 162, 255, 0.20);
+      border-radius: 7px;
+      padding: 3px 9px;
+    }
+
+    .go {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .go .arrow { transition: transform 0.22s ease; }
+    .card:hover .go .arrow { transform: translateX(4px); }
+
+    footer {
+      margin-top: 72px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13.5px;
+      line-height: 1.7;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 520px) {
+      .wrap { padding: 48px 18px 72px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="wrap">
+    <header>
+      <span class="eyebrow">교육용 웹 시뮬레이션</span>
+      <h1>천체 시뮬레이션 모음</h1>
+      <p class="subtitle">
+        직접 만든 여러 천체·지구과학 시뮬레이션을 한곳에 모았습니다.
+        카드를 눌러 각 시뮬레이션을 바로 실행해 보세요. 모두 브라우저에서
+        바로 동작하는 정적 페이지입니다.
+      </p>
+    </header>
+
+    <main class="grid" id="grid">
+      <a class="card" href="retrograde-motion/index.html">
+        <div class="icon">🪐</div>
+        <h2>행성의 순행과 역행</h2>
+        <p>지구에서 관측한 외행성(화성)·내행성(금성)의 겉보기 운동을 태양 중심·지구 중심·천구 뷰로 나란히 보여주며 역행 구간을 직접 찾아봅니다.</p>
+        <div class="tags"><span class="tag">순행/역행</span><span class="tag">겉보기 운동</span><span class="tag">회합주기</span></div>
+        <span class="go">시뮬레이션 열기 <span class="arrow">→</span></span>
+      </a>
+
+      <a class="card" href="coriolis-effect/index.html">
+        <div class="icon">🌀</div>
+        <h2>코리올리 효과</h2>
+        <p>회전하는 지구(회전 좌표계)와 우주 관측자(관성 좌표계) 시점을 나란히 비교합니다. 북/남반구와 4가지 이동 시나리오에서 궤도가 휘어지는 원리를 관찰합니다.</p>
+        <div class="tags"><span class="tag">회전 좌표계</span><span class="tag">전향력</span><span class="tag">반구 비교</span></div>
+        <span class="go">시뮬레이션 열기 <span class="arrow">→</span></span>
+      </a>
+
+      <a class="card" href="moon-shadow/index.html">
+        <div class="icon">🌑</div>
+        <h2>일식 그림자 (태양·달·지구)</h2>
+        <p>태양–달–지구의 공간 배치를 3D로, 지표 위 그림자 이동을 2D 지도로 함께 표시합니다. 개기·부분일식 판정과 누적 일식 경로를 시간에 따라 살펴봅니다.</p>
+        <div class="tags"><span class="tag">개기/부분일식</span><span class="tag">본영·반영</span><span class="tag">3D + 2D 지도</span></div>
+        <span class="go">시뮬레이션 열기 <span class="arrow">→</span></span>
+      </a>
+
+      <a class="card" href="eclipse-direction/index.html">
+        <div class="icon">☀️</div>
+        <h2>일식·월식의 방향과 속도</h2>
+        <p>달은 항상 동쪽으로 공전하는데 왜 일식은 오른쪽부터, 월식은 왼쪽부터 가려질까? 겉보기 상대운동과 각속도·선속도로 그 까닭을 풀어봅니다.</p>
+        <div class="tags"><span class="tag">일식 vs 월식</span><span class="tag">각속도/선속도</span><span class="tag">방향 비교</span></div>
+        <span class="go">시뮬레이션 열기 <span class="arrow">→</span></span>
+      </a>
+
+      <a class="card" href="westward-drift/index.html">
+        <div class="icon">🛰️</div>
+        <h2>인공위성 서편현상</h2>
+        <p>궤도면은 우주에 고정되고 지구가 자전하기 때문에, 위성의 지상 궤적이 한 바퀴마다 서쪽으로 밀려나는 현상을 3D 지구본과 2D 지도로 확인합니다.</p>
+        <div class="tags"><span class="tag">지상 궤적</span><span class="tag">자전</span><span class="tag">정지궤도</span></div>
+        <span class="go">시뮬레이션 열기 <span class="arrow">→</span></span>
+      </a>
+    </main>
+
+    <footer>
+      각 카드는 독립된 시뮬레이션으로, 하위 폴더에 그대로 담겨 있습니다.<br />
+      새로운 천체 시뮬레이션은 이 저장소에 폴더로 추가하고 위 목록에 카드를 더하면 됩니다.
+    </footer>
+  </div>
+
+  <script>
+    // Subtle pointer-follow glow on cards
+    for (const card of document.querySelectorAll('.card')) {
+      card.addEventListener('pointermove', (e) => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', `${e.clientX - r.left}px`);
+      });
+    }
+  </script>
+</body>
+</html>
