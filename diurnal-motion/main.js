@@ -347,6 +347,178 @@ function drawSkyView() {
   for (const s of state.stars) drawSkyStar(s.ra, s.dec, s.color, s.name, true);
 }
 
+// =====================================================================
+//  뷰 C — 관측자와 지평면·반구 (바깥에서 비스듬히 본 모습)
+// =====================================================================
+const sceneCanvas = document.getElementById('sceneView');
+const cctx = sceneCanvas.getContext('2d');
+let camScene = { az: 180, el: 18 };   // 카메라 방위(도, 남쪽에서 북쪽 바라봄)·고도
+
+// 지평좌표(고도·방위) → 국소 단위벡터 [동, 북, 위]
+function localVec(alt, az) {
+  const al = alt * D2R, a = az * D2R;
+  return [Math.cos(al)*Math.sin(a), Math.cos(al)*Math.cos(a), Math.sin(al)];
+}
+
+function drawSceneView() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = sceneCanvas.clientWidth, h = sceneCanvas.clientHeight;
+  if (sceneCanvas.width !== w*dpr || sceneCanvas.height !== h*dpr) {
+    sceneCanvas.width = w*dpr; sceneCanvas.height = h*dpr;
+  }
+  cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cctx.clearRect(0, 0, w, h);
+
+  const azC = camScene.az * D2R, elC = camScene.el * D2R;
+  const camDir = [Math.cos(elC)*Math.sin(azC), Math.cos(elC)*Math.cos(azC), Math.sin(elC)];
+  const right  = [-Math.cos(azC), Math.sin(azC), 0];
+  const up     = [-Math.sin(elC)*Math.sin(azC), -Math.sin(elC)*Math.cos(azC), Math.cos(elC)];
+
+  const S = Math.min((h - 46) / 1.28, (w - 60) / 2.05);
+  const cx = w/2;
+  const cy = h/2 + (Math.cos(elC) - Math.sin(elC)) * S / 2;
+
+  const proj = (P) => ({
+    x: cx + dot(P, right) * S,
+    y: cy - dot(P, up) * S,
+    depth: dot(P, camDir),
+  });
+
+  const lat = effLat();
+
+  // --- 지평면(원반) ---
+  const rim = [];
+  for (let a = 0; a <= 360; a += 4) rim.push(proj(localVec(0, a)));
+  cctx.beginPath();
+  rim.forEach((p, i) => i ? cctx.lineTo(p.x, p.y) : cctx.moveTo(p.x, p.y));
+  cctx.closePath();
+  const gc = proj([0,0,0]);
+  const gg = cctx.createLinearGradient(cx, gc.y - S, cx, gc.y + S*0.4);
+  gg.addColorStop(0, 'rgba(40,70,130,0.30)');
+  gg.addColorStop(1, 'rgba(12,22,48,0.65)');
+  cctx.fillStyle = gg; cctx.fill();
+  cctx.strokeStyle = 'rgba(150,190,255,0.55)'; cctx.lineWidth = 2; cctx.stroke();
+
+  // --- 방위 눈금·라벨 ---
+  const cards = [['북', 0, '#9ec1ff'], ['동', 90, '#cbd5f5'], ['남', 180, '#cbd5f5'], ['서', 270, '#cbd5f5']];
+  for (const [t, az, col] of cards) {
+    const p = proj(localVec(0, az));
+    const inn = proj(scale(localVec(0, az), 0.9));
+    cctx.strokeStyle = 'rgba(180,205,255,0.5)'; cctx.lineWidth = 1.5;
+    cctx.beginPath(); cctx.moveTo(inn.x, inn.y); cctx.lineTo(p.x, p.y); cctx.stroke();
+    const ox = (p.x - gc.x) * 0.10, oy = (p.y - gc.y) * 0.10;
+    label(cctx, p.x + ox, p.y + oy + 4, t, col, 'center', 13);
+  }
+
+  // --- 반구(돔) 격자 ---
+  const domeR = 1;
+  cctx.strokeStyle = 'rgba(130,170,255,0.16)'; cctx.lineWidth = 1;
+  for (const alt of [30, 60]) {         // 고도 원
+    cctx.beginPath();
+    for (let a = 0; a <= 360; a += 5) {
+      const p = proj(scale(localVec(alt, a), domeR));
+      a ? cctx.lineTo(p.x, p.y) : cctx.moveTo(p.x, p.y);
+    }
+    cctx.stroke();
+  }
+  for (let az = 0; az < 360; az += 45) {  // 자오선
+    cctx.beginPath();
+    for (let alt = 0; alt <= 90; alt += 5) {
+      const p = proj(scale(localVec(alt, az), domeR));
+      alt ? cctx.lineTo(p.x, p.y) : cctx.moveTo(p.x, p.y);
+    }
+    cctx.stroke();
+  }
+
+  // --- 별의 하루 경로(지평선 위 구간)를 돔 위에 표시 ---
+  function scenePath(raHours, decDeg, color) {
+    const phi = lat * D2R, d = decDeg * D2R;
+    cctx.save(); cctx.strokeStyle = hexA(color, 0.5); cctx.lineWidth = 1.4;
+    cctx.beginPath(); let started = false;
+    for (let t = 0; t <= 360; t += 3) {
+      const H = (t - raHours * 15) * D2R;
+      const sinAlt = Math.sin(phi)*Math.sin(d) + Math.cos(phi)*Math.cos(d)*Math.cos(H);
+      const alt = Math.asin(clamp(sinAlt,-1,1)) * R2D;
+      if (alt < 0) { started = false; continue; }
+      const cosAlt = Math.cos(alt*D2R);
+      const sinA = -Math.cos(d)*Math.sin(H)/cosAlt;
+      const cosA = (Math.sin(d) - Math.sin(phi)*sinAlt)/(Math.cos(phi)*cosAlt);
+      const az = (Math.atan2(sinA, cosA)*R2D + 360) % 360;
+      const p = proj(scale(localVec(alt, az), domeR));
+      if (!started) { cctx.moveTo(p.x, p.y); started = true; } else cctx.lineTo(p.x, p.y);
+    }
+    cctx.stroke(); cctx.restore();
+  }
+  for (const s of state.stars) scenePath(s.ra, s.dec, s.color);
+
+  // --- 천구 극(일주운동 중심) ---
+  const poleAlt = Math.abs(lat);
+  const poleAz = lat >= 0 ? 0 : 180;
+  const polePt = proj(scale(localVec(poleAlt, poleAz), domeR));
+
+  // --- 별 모으기(지평선 위) 후 깊이 정렬 ---
+  const items = [];
+  for (const s of state.refs) { const aa = altAz(s.ra, s.dec); if (aa.alt >= 0) items.push({ ...s, aa, big: false }); }
+  for (const s of state.stars) { const aa = altAz(s.ra, s.dec); if (aa.alt >= 0) items.push({ ...s, aa, big: true }); }
+  for (const it of items) { it.p = proj(scale(localVec(it.aa.alt, it.aa.az), domeR)); }
+  items.sort((a, b) => a.p.depth - b.p.depth);   // 먼 것 먼저
+
+  const drawStarItem = (it) => {
+    const r = (it.big ? 5 : 3.6) * (0.82 + 0.18 * (it.p.depth + 1));
+    cctx.fillStyle = it.color; cctx.shadowColor = it.color; cctx.shadowBlur = 8;
+    cctx.beginPath(); cctx.arc(it.p.x, it.p.y, r, 0, 7); cctx.fill();
+    cctx.shadowBlur = 0;
+    label(cctx, it.p.x + 7, it.p.y + 4, it.name, '#fff', 'left', 11.5);
+  };
+
+  // 관측자 뒤쪽(depth<0) 별 → 관측자 → 앞쪽 별 순으로
+  const back = items.filter(it => it.p.depth < 0);
+  const front = items.filter(it => it.p.depth >= 0);
+  if (poleAlt > 0.5 && polePt.depth < 0) drawPole();
+  back.forEach(drawStarItem);
+  drawObserver();
+  if (poleAlt > 0.5 && polePt.depth >= 0) drawPole();
+  front.forEach(drawStarItem);
+
+  function drawPole() {
+    cctx.save();
+    cctx.strokeStyle = 'rgba(255,255,255,0.5)'; cctx.lineWidth = 1.4;
+    cctx.beginPath();
+    cctx.moveTo(polePt.x-6, polePt.y); cctx.lineTo(polePt.x+6, polePt.y);
+    cctx.moveTo(polePt.x, polePt.y-6); cctx.lineTo(polePt.x, polePt.y+6);
+    cctx.stroke();
+    label(cctx, polePt.x + 8, polePt.y - 6, lat >= 0 ? '천구 북극' : '천구 남극', 'rgba(210,225,255,0.8)', 'left', 10.5);
+    cctx.restore();
+  }
+
+  function drawObserver() {
+    const o = proj([0,0,0]);
+    const zTip = proj([0,0,domeR]);
+    // 천정 방향 선
+    cctx.save();
+    cctx.strokeStyle = 'rgba(255,210,77,0.5)'; cctx.lineWidth = 1.2; cctx.setLineDash([4,5]);
+    cctx.beginPath(); cctx.moveTo(o.x, o.y); cctx.lineTo(zTip.x, zTip.y); cctx.stroke();
+    cctx.setLineDash([]);
+    label(cctx, zTip.x, zTip.y - 8, '천정', 'rgba(255,210,77,0.9)', 'center', 11);
+
+    // 발밑 그림자
+    const ph = Math.max(18, S * 0.12);
+    cctx.fillStyle = 'rgba(0,0,0,0.35)';
+    cctx.beginPath(); cctx.ellipse(o.x, o.y + 1.5, ph*0.34, ph*0.12, 0, 0, 7); cctx.fill();
+
+    // 사람 형상
+    cctx.strokeStyle = '#ffd24d'; cctx.fillStyle = '#ffd24d';
+    cctx.lineWidth = Math.max(2, ph*0.09); cctx.lineCap = 'round';
+    const hip = o.y - ph*0.42, sh = o.y - ph*0.70, hd = o.y - ph*0.86;
+    cctx.beginPath(); cctx.moveTo(o.x, hip); cctx.lineTo(o.x, sh); cctx.stroke();         // 몸통
+    cctx.beginPath(); cctx.moveTo(o.x, hip); cctx.lineTo(o.x - ph*0.14, o.y); cctx.moveTo(o.x, hip); cctx.lineTo(o.x + ph*0.14, o.y); cctx.stroke(); // 다리
+    cctx.beginPath(); cctx.moveTo(o.x, sh); cctx.lineTo(o.x - ph*0.18, sh - ph*0.14); cctx.moveTo(o.x, sh); cctx.lineTo(o.x + ph*0.18, sh - ph*0.14); cctx.stroke(); // 팔(위)
+    cctx.beginPath(); cctx.arc(o.x, hd, ph*0.15, 0, 7); cctx.fill();                       // 머리
+    label(cctx, o.x + ph*0.28, o.y + 4, '관측자', 'rgba(255,225,150,0.95)', 'left', 11);
+    cctx.restore();
+  }
+}
+
 // ---------- 공용 헬퍼 ----------
 function label(ctx, x, y, text, color, align = 'left', size = 12) {
   ctx.save();
@@ -461,6 +633,18 @@ spaceCanvas.addEventListener('pointermove', e => {
 spaceCanvas.addEventListener('pointerup', () => dragging = false);
 spaceCanvas.addEventListener('pointercancel', () => dragging = false);
 
+// 뷰 C 카메라 드래그
+let sDrag = false, sX = 0, sY = 0;
+sceneCanvas.addEventListener('pointerdown', e => { sDrag = true; sX = e.clientX; sY = e.clientY; sceneCanvas.setPointerCapture(e.pointerId); });
+sceneCanvas.addEventListener('pointermove', e => {
+  if (!sDrag) return;
+  camScene.az -= (e.clientX - sX) * 0.4;
+  camScene.el = clamp(camScene.el + (e.clientY - sY) * 0.3, 6, 84);
+  sX = e.clientX; sY = e.clientY;
+});
+sceneCanvas.addEventListener('pointerup', () => sDrag = false);
+sceneCanvas.addEventListener('pointercancel', () => sDrag = false);
+
 // ---------- 애니메이션 루프 ----------
 let last = performance.now();
 function loop(now) {
@@ -473,6 +657,7 @@ function loop(now) {
   }
   drawSpaceView();
   drawSkyView();
+  drawSceneView();
   requestAnimationFrame(loop);
 }
 
