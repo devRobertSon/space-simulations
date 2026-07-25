@@ -16,6 +16,23 @@ function eqVec(raHours, decDeg) {
   return [Math.cos(d)*Math.cos(a), Math.cos(d)*Math.sin(a), Math.sin(d)];
 }
 
+// ---------- 별 팩토리 (추가/삭제 지원) ----------
+const STAR_PALETTE = ['#ff6b6b', '#4dd2ff', '#ffd24d', '#4ade80', '#c084fc', '#fb923c', '#f472b6', '#a3e635'];
+const DEC_CYCLE = [50, 30, -30, 0, 75, -50, 15, -20];
+const MAX_STARS = 8;
+let starCounter = 0;
+function makeStar(ra, dec) {
+  const idx = starCounter++;
+  const letter = idx < 26 ? String.fromCharCode(65 + idx) : String(idx + 1);
+  return {
+    id: 'star' + idx,
+    name: '별 ' + letter,
+    ra: ra != null ? ra : (idx * 4) % 24,
+    dec: dec != null ? dec : DEC_CYCLE[idx % DEC_CYCLE.length],
+    color: STAR_PALETTE[idx % STAR_PALETTE.length],
+  };
+}
+
 // ---------- 상태 ----------
 const state = {
   latitude: 37.5,
@@ -23,11 +40,7 @@ const state = {
   timeHours: 0,      // 0..24
   playing: false,
   speedMul: 1,       // 재생 속도 배율
-  stars: [
-    { id: 'A', name: '별 A', ra: 3,  dec: 70,  color: '#ff6b6b' },
-    { id: 'B', name: '별 B', ra: 9,  dec: 10,  color: '#4dd2ff' },
-    { id: 'C', name: '별 C', ra: 15, dec: -60, color: '#ffd24d' },
-  ],
+  stars: [makeStar(3, 70), makeStar(9, 10), makeStar(15, -60)],
   // 참고 천체 (편집 불가)
   refs: [
     { name: '북극성', ra: 2.53,  dec: 89.26, color: '#ffffff' },
@@ -386,100 +399,120 @@ function drawSceneView() {
   });
 
   const lat = effLat();
+  const domeR = 1;
 
-  // --- 지평면(원반) ---
-  const rim = [];
-  for (let a = 0; a <= 360; a += 4) rim.push(proj(localVec(0, a)));
+  // 국소 단위벡터(고도·방위)를 구 위 점으로 투영
+  const P = (alt, az) => proj(scale(localVec(alt, az), domeR));
+
+  // 시간각 H(도)로부터 고도·방위 (지평선 아래도 계산)
+  const altAzH = (decDeg, Hdeg) => {
+    const phi = lat*D2R, d = decDeg*D2R, H = Hdeg*D2R;
+    const sinAlt = Math.sin(phi)*Math.sin(d) + Math.cos(phi)*Math.cos(d)*Math.cos(H);
+    const alt = Math.asin(clamp(sinAlt, -1, 1));
+    const cosAlt = Math.cos(alt);
+    let az = 0;
+    if (cosAlt >= 1e-7) {
+      const sinA = -Math.cos(d)*Math.sin(H)/cosAlt;
+      const cosA = (Math.sin(d) - Math.sin(phi)*sinAlt)/(Math.cos(phi)*cosAlt);
+      az = (Math.atan2(sinA, cosA)*R2D + 360) % 360;
+    }
+    return { alt: alt*R2D, az };
+  };
+
+  // --- 그리기 헬퍼 ---
+  const strokePts = (pts, style, lw) => {
+    cctx.strokeStyle = style; cctx.lineWidth = lw;
+    cctx.beginPath();
+    pts.forEach((p, i) => i ? cctx.lineTo(p.x, p.y) : cctx.moveTo(p.x, p.y));
+    cctx.stroke();
+  };
+  const parallelPts = (alt) => { const a = []; for (let az = 0; az <= 360; az += 5) a.push(P(alt, az)); return a; };
+  const meridianPts = (az, a0, a1) => { const a = []; for (let alt = a0; alt <= a1; alt += 5) a.push(P(alt, az)); return a; };
+
+  // 별의 하루 경로(적위 소원): 지평선 위/아래로 나눠 그림 → 전체가 하나의 원(구)
+  const drawDiurnal = (decDeg, color, wantAbove) => {
+    cctx.save();
+    cctx.strokeStyle = wantAbove ? hexA(color, 0.6) : hexA(color, 0.22);
+    cctx.lineWidth = wantAbove ? 1.6 : 1.2;
+    if (!wantAbove) cctx.setLineDash([4, 4]);
+    cctx.beginPath(); let pen = false;
+    for (let H = 0; H <= 360; H += 3) {
+      const aa = altAzH(decDeg, H);
+      if ((aa.alt >= 0) === wantAbove) {
+        const p = P(aa.alt, aa.az);
+        if (!pen) { cctx.moveTo(p.x, p.y); pen = true; } else cctx.lineTo(p.x, p.y);
+      } else pen = false;
+    }
+    cctx.stroke(); cctx.restore();
+  };
+
+  // 천구 극(일주운동 중심)
+  const poleAlt = Math.abs(lat);
+  const poleAz = lat >= 0 ? 0 : 180;
+  const polePt = P(poleAlt, poleAz);
+
+  // 현재 별 위치(지평선 위/아래 모두) — 깊이 정렬
+  const items = [];
+  for (const s of state.refs)  { const aa = altAz(s.ra, s.dec); items.push({ ...s, aa, big: false, p: P(aa.alt, aa.az) }); }
+  for (const s of state.stars) { const aa = altAz(s.ra, s.dec); items.push({ ...s, aa, big: true,  p: P(aa.alt, aa.az) }); }
+  items.sort((a, b) => a.p.depth - b.p.depth);
+
+  const drawStarItem = (it) => {
+    const above = it.aa.alt >= 0;
+    const r = (it.big ? 5 : 3.6) * (0.82 + 0.18 * (it.p.depth + 1));
+    cctx.save();
+    cctx.globalAlpha = above ? 1 : 0.4;
+    cctx.fillStyle = it.color; cctx.shadowColor = it.color; cctx.shadowBlur = above ? 8 : 0;
+    cctx.beginPath(); cctx.arc(it.p.x, it.p.y, above ? r : r*0.8, 0, 7); cctx.fill();
+    cctx.shadowBlur = 0;
+    label(cctx, it.p.x + 7, it.p.y + 4, it.name, above ? '#fff' : 'rgba(205,215,245,0.5)', 'left', 11.5);
+    cctx.restore();
+  };
+
+  const o0 = proj([0, 0, 0]);
+
+  // 1) 구의 둘레(실루엣)
+  cctx.strokeStyle = 'rgba(130,170,255,0.13)'; cctx.lineWidth = 1;
+  cctx.beginPath(); cctx.arc(o0.x, o0.y, domeR*S, 0, 7); cctx.stroke();
+
+  // 2) 아래 반구(지평선 아래): 격자·경로·별을 어둡게, 지평면 앞에 그려 가려지게
+  for (const alt of [-60, -30]) strokePts(parallelPts(alt), 'rgba(120,150,220,0.09)', 1);
+  for (let az = 0; az < 360; az += 45) strokePts(meridianPts(az, -90, 0), 'rgba(120,150,220,0.09)', 1);
+  for (const s of state.stars) drawDiurnal(s.dec, s.color, false);   // 전몰 구간 포함 아래쪽 경로
+  for (const it of items) if (it.aa.alt < 0) drawStarItem(it);
+
+  // 3) 지평면(반투명) — 아래 반구를 살짝 가림
+  const rim = []; for (let a = 0; a <= 360; a += 4) rim.push(P(0, a));
   cctx.beginPath();
   rim.forEach((p, i) => i ? cctx.lineTo(p.x, p.y) : cctx.moveTo(p.x, p.y));
   cctx.closePath();
-  const gc = proj([0,0,0]);
-  const gg = cctx.createLinearGradient(cx, gc.y - S, cx, gc.y + S*0.4);
-  gg.addColorStop(0, 'rgba(40,70,130,0.30)');
-  gg.addColorStop(1, 'rgba(12,22,48,0.65)');
+  const gg = cctx.createLinearGradient(cx, o0.y - S, cx, o0.y + S*0.45);
+  gg.addColorStop(0, 'rgba(40,70,130,0.22)');
+  gg.addColorStop(1, 'rgba(12,22,48,0.5)');
   cctx.fillStyle = gg; cctx.fill();
-  cctx.strokeStyle = 'rgba(150,190,255,0.55)'; cctx.lineWidth = 2; cctx.stroke();
+  cctx.strokeStyle = 'rgba(150,190,255,0.6)'; cctx.lineWidth = 2; cctx.stroke();
 
-  // --- 방위 눈금·라벨 ---
+  // 방위 눈금·라벨
   const cards = [['북', 0, '#9ec1ff'], ['동', 90, '#cbd5f5'], ['남', 180, '#cbd5f5'], ['서', 270, '#cbd5f5']];
   for (const [t, az, col] of cards) {
-    const p = proj(localVec(0, az));
-    const inn = proj(scale(localVec(0, az), 0.9));
+    const p = P(0, az), inn = proj(scale(localVec(0, az), 0.9));
     cctx.strokeStyle = 'rgba(180,205,255,0.5)'; cctx.lineWidth = 1.5;
     cctx.beginPath(); cctx.moveTo(inn.x, inn.y); cctx.lineTo(p.x, p.y); cctx.stroke();
-    const ox = (p.x - gc.x) * 0.10, oy = (p.y - gc.y) * 0.10;
+    const ox = (p.x - o0.x) * 0.10, oy = (p.y - o0.y) * 0.10;
     label(cctx, p.x + ox, p.y + oy + 4, t, col, 'center', 13);
   }
 
-  // --- 반구(돔) 격자 ---
-  const domeR = 1;
-  cctx.strokeStyle = 'rgba(130,170,255,0.16)'; cctx.lineWidth = 1;
-  for (const alt of [30, 60]) {         // 고도 원
-    cctx.beginPath();
-    for (let a = 0; a <= 360; a += 5) {
-      const p = proj(scale(localVec(alt, a), domeR));
-      a ? cctx.lineTo(p.x, p.y) : cctx.moveTo(p.x, p.y);
-    }
-    cctx.stroke();
-  }
-  for (let az = 0; az < 360; az += 45) {  // 자오선
-    cctx.beginPath();
-    for (let alt = 0; alt <= 90; alt += 5) {
-      const p = proj(scale(localVec(alt, az), domeR));
-      alt ? cctx.lineTo(p.x, p.y) : cctx.moveTo(p.x, p.y);
-    }
-    cctx.stroke();
-  }
+  // 4) 위 반구(지평선 위): 밝게
+  for (const alt of [30, 60]) strokePts(parallelPts(alt), 'rgba(130,170,255,0.18)', 1);
+  for (let az = 0; az < 360; az += 45) strokePts(meridianPts(az, 0, 90), 'rgba(130,170,255,0.18)', 1);
+  for (const s of state.stars) drawDiurnal(s.dec, s.color, true);
 
-  // --- 별의 하루 경로(지평선 위 구간)를 돔 위에 표시 ---
-  function scenePath(raHours, decDeg, color) {
-    const phi = lat * D2R, d = decDeg * D2R;
-    cctx.save(); cctx.strokeStyle = hexA(color, 0.5); cctx.lineWidth = 1.4;
-    cctx.beginPath(); let started = false;
-    for (let t = 0; t <= 360; t += 3) {
-      const H = (t - raHours * 15) * D2R;
-      const sinAlt = Math.sin(phi)*Math.sin(d) + Math.cos(phi)*Math.cos(d)*Math.cos(H);
-      const alt = Math.asin(clamp(sinAlt,-1,1)) * R2D;
-      if (alt < 0) { started = false; continue; }
-      const cosAlt = Math.cos(alt*D2R);
-      const sinA = -Math.cos(d)*Math.sin(H)/cosAlt;
-      const cosA = (Math.sin(d) - Math.sin(phi)*sinAlt)/(Math.cos(phi)*cosAlt);
-      const az = (Math.atan2(sinA, cosA)*R2D + 360) % 360;
-      const p = proj(scale(localVec(alt, az), domeR));
-      if (!started) { cctx.moveTo(p.x, p.y); started = true; } else cctx.lineTo(p.x, p.y);
-    }
-    cctx.stroke(); cctx.restore();
-  }
-  for (const s of state.stars) scenePath(s.ra, s.dec, s.color);
-
-  // --- 천구 극(일주운동 중심) ---
-  const poleAlt = Math.abs(lat);
-  const poleAz = lat >= 0 ? 0 : 180;
-  const polePt = proj(scale(localVec(poleAlt, poleAz), domeR));
-
-  // --- 별 모으기(지평선 위) 후 깊이 정렬 ---
-  const items = [];
-  for (const s of state.refs) { const aa = altAz(s.ra, s.dec); if (aa.alt >= 0) items.push({ ...s, aa, big: false }); }
-  for (const s of state.stars) { const aa = altAz(s.ra, s.dec); if (aa.alt >= 0) items.push({ ...s, aa, big: true }); }
-  for (const it of items) { it.p = proj(scale(localVec(it.aa.alt, it.aa.az), domeR)); }
-  items.sort((a, b) => a.p.depth - b.p.depth);   // 먼 것 먼저
-
-  const drawStarItem = (it) => {
-    const r = (it.big ? 5 : 3.6) * (0.82 + 0.18 * (it.p.depth + 1));
-    cctx.fillStyle = it.color; cctx.shadowColor = it.color; cctx.shadowBlur = 8;
-    cctx.beginPath(); cctx.arc(it.p.x, it.p.y, r, 0, 7); cctx.fill();
-    cctx.shadowBlur = 0;
-    label(cctx, it.p.x + 7, it.p.y + 4, it.name, '#fff', 'left', 11.5);
-  };
-
-  // 관측자 뒤쪽(depth<0) 별 → 관측자 → 앞쪽 별 순으로
-  const back = items.filter(it => it.p.depth < 0);
-  const front = items.filter(it => it.p.depth >= 0);
-  if (poleAlt > 0.5 && polePt.depth < 0) drawPole();
-  back.forEach(drawStarItem);
+  // 5) 관측자 + 천정선
   drawObserver();
-  if (poleAlt > 0.5 && polePt.depth >= 0) drawPole();
-  front.forEach(drawStarItem);
+
+  // 6) 천구 극 + 지평선 위 별
+  if (poleAlt > 0.5) drawPole();
+  for (const it of items) if (it.aa.alt >= 0) drawStarItem(it);
 
   function drawPole() {
     cctx.save();
@@ -550,6 +583,7 @@ function buildStarEditors() {
         <span class="dot" style="background:${s.color};color:${s.color}"></span>
         <span class="star-name">${s.name}</span>
         <span class="badge" data-badge="${s.id}"></span>
+        <button class="star-remove" data-remove="${s.id}" title="${s.name} 삭제" aria-label="${s.name} 삭제">×</button>
       </div>
       <div class="row">
         <label>적경 RA</label>
@@ -569,6 +603,22 @@ function buildStarEditors() {
   wrap.querySelectorAll('[data-dec]').forEach(inp => inp.addEventListener('input', e => {
     const s = state.stars.find(x => x.id === e.target.dataset.dec); s.dec = +e.target.value; refreshStars();
   }));
+  wrap.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', e => {
+    removeStar(e.currentTarget.dataset.remove);
+  }));
+}
+
+function addStar() {
+  if (state.stars.length >= MAX_STARS) return;
+  state.stars.push(makeStar());
+  buildStarEditors();
+  refreshStars();
+}
+
+function removeStar(id) {
+  state.stars = state.stars.filter(s => s.id !== id);
+  buildStarEditors();
+  refreshStars();
 }
 
 function fmtRA(h) {
@@ -586,6 +636,10 @@ function refreshStars() {
     if (rao) rao.textContent = fmtRA(s.ra);
     if (deco) deco.textContent = `${s.dec > 0 ? '+' : ''}${s.dec}°`;
   }
+  const count = el('starCount');
+  if (count) count.textContent = `${state.stars.length} / ${MAX_STARS}개`;
+  const add = el('addStar');
+  if (add) add.disabled = state.stars.length >= MAX_STARS;
 }
 
 function updateReadouts() {
@@ -612,6 +666,7 @@ el('lat').addEventListener('input', e => { state.latitude = +e.target.value; upd
 el('lon').addEventListener('input', e => { state.longitude = +e.target.value; updateReadouts(); });
 el('time').addEventListener('input', e => { state.timeHours = +e.target.value; updateReadouts(); });
 el('speed').addEventListener('input', e => { state.speedMul = +e.target.value; updateReadouts(); });
+el('addStar').addEventListener('click', addStar);
 
 // 재생 컨트롤
 function setPlaying(p) {

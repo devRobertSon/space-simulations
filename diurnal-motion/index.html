@@ -98,8 +98,14 @@
 
       <!-- 별 편집 -->
       <div class="panel wide">
-        <h2>별 편집 &amp; 분류</h2>
-        <p class="hint">각 별의 적경(RA)과 적위(Dec)를 바꾸면, 현재 위도에서의 분류가 자동으로 갱신됩니다.</p>
+        <div class="panel-head">
+          <h2>별 편집 &amp; 분류</h2>
+          <div class="star-toolbar">
+            <span class="hint" id="starCount"></span>
+            <button id="addStar" class="btn small">＋ 별 추가</button>
+          </div>
+        </div>
+        <p class="hint">각 별의 적경(RA)과 적위(Dec)를 바꾸면 현재 위도에서의 분류가 자동으로 갱신됩니다. 별은 추가하거나 <b>×</b> 로 삭제할 수 있습니다.</p>
         <div id="starEditors" class="star-editors"></div>
         <div class="legend">
           <span class="lg circumpolar">● 주극성 — 지평선 아래로 지지 않음</span>
