@@ -115,6 +115,23 @@ h1 { font-size: clamp(26px, 4.5vw, 40px); margin: 0 0 14px; font-weight: 800; le
 }
 .field output { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; font-size: 14px; }
 
+/* 숫자 클릭 → 직접 입력 */
+.edit-cell { display: inline-flex; align-items: center; }
+output.editable {
+  cursor: text; border-bottom: 1px dashed rgba(122,162,255,0.5);
+  transition: color .12s, background .12s;
+}
+output.editable:hover { color: #fff; background: rgba(122,162,255,0.16); border-radius: 4px; }
+.num-input {
+  width: 74px; font: inherit; font-size: 13.5px; font-weight: 700;
+  text-align: right; color: var(--accent);
+  background: rgba(8,13,32,0.95); border: 1px solid var(--accent);
+  border-radius: 6px; padding: 2px 6px; outline: none;
+  font-variant-numeric: tabular-nums;
+}
+.num-input::-webkit-inner-spin-button, .num-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.star-edit .row .num-input { width: 66px; font-size: 12.5px; }
+
 input[type=range] {
   -webkit-appearance: none; appearance: none; width: 100%; height: 6px;
   background: rgba(255,255,255,0.12); border-radius: 999px; outline: none;
