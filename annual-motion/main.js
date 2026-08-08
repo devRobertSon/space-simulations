@@ -323,7 +323,7 @@ function attachEditable(output, spec) {
 function parseTime(t){ t=String(t).trim(); if(t.includes(':')){const [h,m]=t.split(':'); const hh=parseInt(h,10); if(isNaN(hh))return null; const mm=parseInt(m,10); return hh+(isNaN(mm)?0:mm)/60;} const v=parseFloat(t); return isFinite(v)?v:null; }
 attachEditable(el('latOut'),   { raw: () => state.latitude, min: -90, max: 90, step: 0.5, refresh: updateReadouts, set: v => { state.latitude=v; el('lat').value=v; } });
 attachEditable(el('timeOut'),  { type: 'text', raw: () => el('timeOut').textContent, parse: parseTime, min: 0, max: 24, refresh: updateReadouts, set: v => { state.hour=v; el('time').value=v; } });
-attachEditable(el('speedOut'), { raw: () => state.speedMul, min: 0.25, max: 8, step: 0.25, refresh: updateReadouts, set: v => { state.speedMul=v; el('speed').value=v; } });
+attachEditable(el('speedOut'), { raw: () => state.speedMul, min: 0.25, max: 20, step: 0.25, refresh: updateReadouts, set: v => { state.speedMul=v; el('speed').value=v; } });
 
 let last = performance.now();
 function loop(now) {
