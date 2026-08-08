@@ -23,6 +23,7 @@ python3 -m http.server 8000
 
 | 폴더 | 시뮬레이션 | 설명 |
 | --- | --- | --- |
+| [`constellation-rotation/`](constellation-rotation/) | 별자리의 일주 회전 | 정동出·정서沒 별자리가 위도·적위에 따라 하늘에서 기울고 회전하는 모습을 천구·반구·하늘 평면 3뷰로 표시 |
 | [`diurnal-motion/`](diurnal-motion/) | 별들의 일주운동 | 지구 자전에 의한 별의 일주운동, 위도·적위에 따른 주극성/출몰성/전몰성 판별 |
 | [`retrograde-motion/`](retrograde-motion/) | 행성의 순행과 역행 | 외행성(화성)·내행성(금성)의 겉보기 운동을 여러 좌표계 뷰로 비교 |
 | [`coriolis-effect/`](coriolis-effect/) | 코리올리 효과 | 회전 좌표계와 관성 좌표계 시점을 나란히 비교 |
