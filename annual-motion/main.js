@@ -329,8 +329,13 @@ let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.1); last = now;
   if (state.playing) {
-    state.dayOfYear = (state.dayOfYear + dt * 16 * state.speedMul) % 365;
-    if (state.dailyOn) state.hour = (state.hour + dt * 4 * state.speedMul) % 24;
+    if (state.dailyOn) {
+      // 하루(밤낮)가 지나는 동안 날짜는 고정, 하루가 끝나면 날짜 +1
+      state.hour += dt * 4 * state.speedMul;
+      if (state.hour >= 24) { const d = Math.floor(state.hour / 24); state.hour -= d * 24; state.dayOfYear = (state.dayOfYear + d) % 365; }
+    } else {
+      state.dayOfYear = (state.dayOfYear + dt * 16 * state.speedMul) % 365;
+    }
     updateReadouts();
   }
   drawOrbitView(); drawSpaceView(); drawSkyView();
