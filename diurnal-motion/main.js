@@ -588,12 +588,12 @@ function buildStarEditors() {
       <div class="row">
         <label>적경 RA</label>
         <input type="range" data-ra="${s.id}" min="0" max="24" step="0.1" value="${s.ra}" />
-        <output data-raout="${s.id}"></output>
+        <span class="edit-cell"><output data-raout="${s.id}"></output></span>
       </div>
       <div class="row">
         <label>적위 Dec</label>
         <input type="range" data-dec="${s.id}" min="-90" max="90" step="1" value="${s.dec}" />
-        <output data-decout="${s.id}"></output>
+        <span class="edit-cell"><output data-decout="${s.id}"></output></span>
       </div>`;
     wrap.appendChild(div);
   }
@@ -606,6 +606,17 @@ function buildStarEditors() {
   wrap.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', e => {
     removeStar(e.currentTarget.dataset.remove);
   }));
+  // 숫자 클릭 → 직접 입력
+  wrap.querySelectorAll('[data-raout]').forEach(o => {
+    const s = state.stars.find(x => x.id === o.dataset.raout);
+    attachEditable(o, { raw: () => s.ra, min: 0, max: 24, step: 0.1, refresh: refreshStars,
+      set: v => { s.ra = v; const sl = wrap.querySelector(`[data-ra="${s.id}"]`); if (sl) sl.value = v; } });
+  });
+  wrap.querySelectorAll('[data-decout]').forEach(o => {
+    const s = state.stars.find(x => x.id === o.dataset.decout);
+    attachEditable(o, { raw: () => s.dec, min: -90, max: 90, step: 1, refresh: refreshStars,
+      set: v => { s.dec = v; const sl = wrap.querySelector(`[data-dec="${s.id}"]`); if (sl) sl.value = v; } });
+  });
 }
 
 function addStar() {
@@ -667,6 +678,65 @@ el('lon').addEventListener('input', e => { state.longitude = +e.target.value; up
 el('time').addEventListener('input', e => { state.timeHours = +e.target.value; updateReadouts(); });
 el('speed').addEventListener('input', e => { state.speedMul = +e.target.value; updateReadouts(); });
 el('addStar').addEventListener('click', addStar);
+
+// ---------- 숫자 클릭 → 직접 입력 ----------
+function parseTime(text) {
+  text = String(text).trim();
+  if (text.includes(':')) {
+    const [h, m] = text.split(':');
+    const hh = parseInt(h, 10);
+    if (isNaN(hh)) return null;
+    const mm = parseInt(m, 10);
+    return hh + (isNaN(mm) ? 0 : mm) / 60;
+  }
+  const v = parseFloat(text);
+  return isFinite(v) ? v : null;
+}
+
+function attachEditable(output, spec) {
+  if (!output) return;
+  output.classList.add('editable');
+  output.title = '클릭하여 직접 입력';
+  output.addEventListener('click', () => {
+    if (output.style.display === 'none') return;   // 이미 편집 중
+    const cell = output.closest('.edit-cell') || output.parentElement;
+    const input = document.createElement('input');
+    input.className = 'num-input';
+    input.type = spec.type || 'number';
+    if (input.type === 'number') {
+      input.inputMode = 'decimal';
+      if (spec.min != null) input.min = spec.min;
+      if (spec.max != null) input.max = spec.max;
+      if (spec.step != null) input.step = spec.step;
+    }
+    input.value = spec.raw();
+    output.style.display = 'none';
+    cell.appendChild(input);
+    input.focus(); input.select();
+    let done = false;
+    const finish = (commit) => {
+      if (done) return; done = true;
+      if (commit) {
+        const v = spec.parse ? spec.parse(input.value) : parseFloat(input.value);
+        if (v != null && isFinite(v)) spec.set(clamp(v, spec.min, spec.max));
+      }
+      input.remove();
+      output.style.display = '';
+      spec.refresh();
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
+  });
+}
+
+// 전역 컨트롤 숫자 입력
+attachEditable(el('latOut'),   { raw: () => state.latitude,  min: -90,  max: 90,  step: 0.5,  refresh: () => { updateReadouts(); refreshStars(); }, set: v => { state.latitude = v; el('lat').value = v; } });
+attachEditable(el('lonOut'),   { raw: () => state.longitude, min: -180, max: 180, step: 1,    refresh: updateReadouts, set: v => { state.longitude = v; el('lon').value = v; } });
+attachEditable(el('timeOut'),  { type: 'text', raw: () => el('timeOut').textContent, parse: parseTime, min: 0, max: 24, refresh: updateReadouts, set: v => { state.timeHours = v; el('time').value = v; } });
+attachEditable(el('speedOut'), { raw: () => state.speedMul,  min: 0.25, max: 8,   step: 0.25, refresh: updateReadouts, set: v => { state.speedMul = v; el('speed').value = v; } });
 
 // 재생 컨트롤
 function setPlaying(p) {

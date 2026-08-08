@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>별자리의 일주 회전 · 천체 시뮬레이션</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌠%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="stars-bg"></div>
+
+  <header class="page-head">
+    <a class="home-link" href="../index.html">← 시뮬레이션 목록</a>
+    <h1>🌠 별자리의 일주 회전</h1>
+    <p class="lead">
+      <b>정동(正東)에서 떠서 정서(正西)로 지는 별자리</b>가, 특정 위도의 관측자에게는
+      하늘을 가로지르며 <b>어떻게 기울고 회전해</b> 보이는지 살펴봅니다. 별이 정확히
+      정동에서 떠서 정서로 지려면 <b>적위(δ)가 0°</b>(천구 적도 위)여야 합니다.
+    </p>
+    <p class="disclaimer">
+      ⓘ 이 시뮬레이션은 <b>지구의 자전</b>에 의한 <b>하루(약 24시간)</b> 동안의
+      변화만 반복해서 보여줍니다. 계절 변화나 별의 실제 고유운동은 포함하지 않습니다.
+    </p>
+  </header>
+
+  <main>
+    <section class="views">
+      <figure class="view-card">
+        <canvas id="spaceView"></canvas>
+        <figcaption>
+          <b>천구 — 바깥에서 본 모습</b>
+          <span>천구 적도 위(δ=0°)의 별자리와, 자전하는 지구·관측자·지평선. 드래그로 시점 회전.</span>
+        </figcaption>
+      </figure>
+      <figure class="view-card">
+        <canvas id="domeView"></canvas>
+        <figcaption>
+          <b>반구(하늘 돔) — 사람이 가운데</b>
+          <span>관측자를 둘러싼 하늘 돔에서 별자리가 동에서 떠 서로 지며 회전합니다. 화살표는 바라보는 방향. 드래그로 시점 회전.</span>
+        </figcaption>
+      </figure>
+      <figure class="view-card">
+        <canvas id="skyView"></canvas>
+        <figcaption>
+          <b>하늘 평면 — 바라보는 방향</b>
+          <span>관측자가 선택한 방향을 바라볼 때 보이는 하늘. 별자리가 실제로 기울며 회전하는 모습이 보입니다.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <section class="controls">
+      <!-- 관측자 & 별자리 -->
+      <div class="panel">
+        <h2>관측자 &amp; 별자리</h2>
+        <div class="field">
+          <label>관측자 위도 (Latitude)
+            <span class="edit-cell"><output id="latOut">+37.5°</output></span>
+          </label>
+          <input type="range" id="lat" min="-90" max="90" step="0.5" value="37.5" />
+          <div class="ticks"><span>남극 −90°</span><span>적도 0°</span><span>북극 +90°</span></div>
+        </div>
+        <div class="field">
+          <label>별자리 중심 적위 (Dec)
+            <span class="edit-cell"><output id="decOut">+0°</output></span>
+          </label>
+          <input type="range" id="dec" min="-80" max="80" step="1" value="0" />
+          <div class="ticks"><span>−80°</span><span>0° (정동/정서)</span><span>+80°</span></div>
+        </div>
+        <p class="hint" id="riseHint"></p>
+      </div>
+
+      <!-- 시간 -->
+      <div class="panel">
+        <h2>시간 (하루)</h2>
+        <div class="playbar">
+          <button id="play" class="btn primary">▶ 재생</button>
+          <button id="pause" class="btn">⏸ 일시정지</button>
+          <button id="stop" class="btn">⏹ 정지</button>
+        </div>
+        <div class="field">
+          <label>경과 시각
+            <span class="edit-cell"><output id="timeOut">06:00</output></span>
+          </label>
+          <input type="range" id="time" min="0" max="24" step="0.01" value="6" />
+          <div class="ticks"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
+        </div>
+        <div class="field">
+          <label>재생 속도
+            <span class="edit-cell"><output id="speedOut">1.0×</output></span>
+          </label>
+          <input type="range" id="speed" min="0.25" max="8" step="0.25" value="1" />
+        </div>
+      </div>
+
+      <!-- 바라보는 방향 -->
+      <div class="panel">
+        <h2>바라보는 방향</h2>
+        <p class="hint">‘하늘 평면’ 뷰에서 관측자가 바라보는 방향을 고르세요.</p>
+        <div class="facing" id="facing">
+          <button class="dir-btn" data-az="0">북</button>
+          <button class="dir-btn active" data-az="90">동</button>
+          <button class="dir-btn" data-az="180">남</button>
+          <button class="dir-btn" data-az="270">서</button>
+        </div>
+        <p class="hint" id="facingHint"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-foot">
+    별자리의 일주 회전 · 천체 시뮬레이션 모음의 일부 · 빌드 없이 브라우저에서 바로 동작
+  </footer>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

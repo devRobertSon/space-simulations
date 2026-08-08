@@ -58,14 +58,14 @@
         <h2>관측자 위치</h2>
         <div class="field">
           <label>위도 (Latitude)
-            <output id="latOut">+37.5°</output>
+            <span class="edit-cell"><output id="latOut">+37.5°</output></span>
           </label>
           <input type="range" id="lat" min="-90" max="90" step="0.5" value="37.5" />
           <div class="ticks"><span>남극 −90°</span><span>적도 0°</span><span>북극 +90°</span></div>
         </div>
         <div class="field">
           <label>경도 (Longitude)
-            <output id="lonOut">+127°</output>
+            <span class="edit-cell"><output id="lonOut">+127°</output></span>
           </label>
           <input type="range" id="lon" min="-180" max="180" step="1" value="127" />
           <div class="ticks"><span>−180°</span><span>0°</span><span>+180°</span></div>
@@ -83,14 +83,14 @@
         </div>
         <div class="field">
           <label>경과 시각
-            <output id="timeOut">00:00</output>
+            <span class="edit-cell"><output id="timeOut">00:00</output></span>
           </label>
           <input type="range" id="time" min="0" max="24" step="0.01" value="0" />
           <div class="ticks"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
         </div>
         <div class="field">
           <label>재생 속도
-            <output id="speedOut">1.0×</output>
+            <span class="edit-cell"><output id="speedOut">1.0×</output></span>
           </label>
           <input type="range" id="speed" min="0.25" max="8" step="0.25" value="1" />
         </div>
