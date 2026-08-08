@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>별자리의 연주 회전 · 천체 시뮬레이션</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌌%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="stars-bg"></div>
+
+  <header class="page-head">
+    <a class="home-link" href="../index.html">← 시뮬레이션 목록</a>
+    <h1>🌌 별자리의 연주 회전</h1>
+    <p class="lead">
+      지구가 <b>공전</b>하기 때문에 <b>같은 시각에 관측하면</b> 주극성 별자리(북두칠성)가
+      <b>북극성을 중심으로 한 달에 약 30°씩 반시계 방향으로 회전</b>하고, 1년 뒤 제자리로
+      돌아옵니다. 아래 체크박스로 <b>하루 동안의 회전(일주운동)</b>도 함께 볼 수 있습니다.
+    </p>
+    <p class="disclaimer">
+      ⓘ 기본적으로 <b>지구의 공전</b>에 의한 <b>1년</b> 동안의 변화를 반복합니다.
+      ‘하루 운동 함께 보기’를 켜면 <b>자전</b>에 의한 하루 동안의 회전도 겹쳐서 보여줍니다.
+    </p>
+  </header>
+
+  <main>
+    <section class="views">
+      <figure class="view-card">
+        <canvas id="spaceView"></canvas>
+        <figcaption>
+          <b>천구 — 바깥에서 본 모습</b>
+          <span>천구에 고정된 북두칠성·북극성과, 관측자·지평선. 드래그로 시점 회전.</span>
+        </figcaption>
+      </figure>
+      <figure class="view-card">
+        <canvas id="domeView"></canvas>
+        <figcaption>
+          <b>반구(하늘 돔) — 사람이 가운데</b>
+          <span>관측자를 둘러싼 하늘 돔. 북두칠성이 북극성을 중심으로 회전합니다. 화살표는 바라보는 방향.</span>
+        </figcaption>
+      </figure>
+      <figure class="view-card">
+        <canvas id="skyView"></canvas>
+        <figcaption>
+          <b>하늘 평면 — 바라보는 방향</b>
+          <span>선택한 방향(기본 북쪽)을 바라볼 때 보이는 하늘. 북극성 둘레로 도는 모습을 정면에서 봅니다.</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <section class="controls">
+      <!-- 관측자 & 관측 시각 -->
+      <div class="panel">
+        <h2>관측자 &amp; 관측 시각</h2>
+        <div class="field">
+          <label>관측자 위도 (Latitude)
+            <span class="edit-cell"><output id="latOut">+37.5°</output></span>
+          </label>
+          <input type="range" id="lat" min="-90" max="90" step="0.5" value="37.5" />
+          <div class="ticks"><span>남극 −90°</span><span>적도 0°</span><span>북극 +90°</span></div>
+        </div>
+        <div class="field">
+          <label>관측 시각 (매일 같은 시각)
+            <span class="edit-cell"><output id="timeOut">21:00</output></span>
+          </label>
+          <input type="range" id="time" min="0" max="24" step="0.25" value="21" />
+          <div class="ticks"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
+        </div>
+        <label class="check"><input type="checkbox" id="daily" /> 하루 동안의 운동(일주)도 함께 보기</label>
+      </div>
+
+      <!-- 날짜 (1년) -->
+      <div class="panel">
+        <h2>날짜 (1년)</h2>
+        <div class="playbar">
+          <button id="play" class="btn primary">▶ 재생</button>
+          <button id="pause" class="btn">⏸ 일시정지</button>
+          <button id="stop" class="btn">⏹ 정지</button>
+        </div>
+        <div class="field">
+          <label>날짜
+            <span class="edit-cell"><output id="dateOut">1월 1일</output></span>
+          </label>
+          <input type="range" id="date" min="0" max="364" step="1" value="0" />
+          <div class="ticks"><span>1월</span><span>4월</span><span>7월</span><span>10월</span><span>12월</span></div>
+        </div>
+        <div class="field">
+          <label>재생 속도
+            <span class="edit-cell"><output id="speedOut">1.0×</output></span>
+          </label>
+          <input type="range" id="speed" min="0.25" max="8" step="0.25" value="1" />
+        </div>
+      </div>
+
+      <!-- 바라보는 방향 -->
+      <div class="panel">
+        <h2>바라보는 방향</h2>
+        <p class="hint">‘하늘 평면’ 뷰에서 관측자가 바라보는 방향을 고르세요. 북두칠성은 북쪽 하늘에서 보입니다.</p>
+        <div class="facing" id="facing">
+          <button class="dir-btn active" data-az="0">북</button>
+          <button class="dir-btn" data-az="90">동</button>
+          <button class="dir-btn" data-az="180">남</button>
+          <button class="dir-btn" data-az="270">서</button>
+        </div>
+        <p class="hint" id="infoHint"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-foot">
+    별자리의 연주 회전 · 천체 시뮬레이션 모음의 일부 · 빌드 없이 브라우저에서 바로 동작
+  </footer>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
